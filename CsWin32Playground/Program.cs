@@ -1,7 +1,11 @@
-﻿using System;
+﻿using Microsoft.Win32.SafeHandles;
+using System;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
-using Microsoft.Windows.Sdk;
+using Windows.Win32;
+using Windows.Win32.Foundation;
+using Windows.Win32.Graphics.Gdi;
+using Windows.Win32.UI.WindowsAndMessaging;
 
 [assembly:System.Diagnostics.CodeAnalysis.SuppressMessage("Interoperability", "CA1416:Validate platform compatibility", Justification = "<Pending>")]
 
@@ -28,7 +32,8 @@ namespace CsWin32Playground
                 wc.lpfnWndProc = WndProc;
                 wc.lpszClassName = classNamePtr;
                 wc.hInstance = (HINSTANCE)hInstance;
-
+                wc.hbrBackground = new HBRUSH(PInvoke.GetStockObject(GET_STOCK_OBJECT_FLAGS.LTGRAY_BRUSH));
+                wc.style = WNDCLASS_STYLES.CS_VREDRAW | WNDCLASS_STYLES.CS_HREDRAW; 
                 classId = PInvoke.RegisterClass(wc);
 
                 if (classId == 0)
@@ -65,6 +70,10 @@ namespace CsWin32Playground
 
         private static LRESULT WndProc(HWND hwnd, uint msg, WPARAM wParam, LPARAM lParam)
         {
+            HDC hdc;
+            PAINTSTRUCT ps;
+            RECT rect;
+
             switch (msg)
             {
                 case Constants.WM_CREATE:
@@ -77,6 +86,18 @@ namespace CsWin32Playground
                         // Respond to the message:
                         OnSize(hwnd, wParam, width, height);
                     }
+                    break;
+                case Constants.WM_MOUSEMOVE:
+                    Console.WriteLine(nameof(Constants.WM_MOUSEMOVE));
+                    break;
+                case Constants.WM_PAINT:
+                    hdc = PInvoke.BeginPaint(hwnd, out ps);
+                    PInvoke.GetClientRect(hwnd, out rect);
+
+                    var hdcHandle = new HdcSafeHandle(hdc);
+
+                    PInvoke.DrawText(hdcHandle, "Hello World", -1, ref rect, DRAW_TEXT_FORMAT.DT_SINGLELINE |  DRAW_TEXT_FORMAT.DT_CENTER | DRAW_TEXT_FORMAT.DT_VCENTER);
+                    PInvoke.EndPaint(hwnd, ps);
                     break;
                 default:
                     break;
@@ -120,6 +141,25 @@ namespace CsWin32Playground
             protected override bool ReleaseHandle()
             {
                 return true;   
+            }
+        }
+
+        // TODO: no idea whether this is right
+        public class HdcSafeHandle : SafeHandleZeroOrMinusOneIsInvalid
+        {
+            public HdcSafeHandle(HDC hdc) :
+                base(ownsHandle: false)
+            {
+                SetHandle(hdc);
+            }
+
+            //public override bool IsInvalid => false;
+
+            protected override bool ReleaseHandle()
+            {
+                // not clear to me whether this is needed.
+                this.SetHandleAsInvalid();
+                return true;
             }
         }
     }
