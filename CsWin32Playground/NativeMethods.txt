@@ -15,6 +15,9 @@ GetClientRect
 UpdateWindow
 ValidateRect
 LoadCursor
+UpdateWindow
+GetClientRect
+InvalidateRect
 
 DrawText
 BeginPaint
@@ -24,6 +27,8 @@ GetClientRect
 GetDC
 CreateCompatibleDC
 GetStockObject
+SelectObject
+HFONT
 
 // Constants
 CW_USEDEFAULT
