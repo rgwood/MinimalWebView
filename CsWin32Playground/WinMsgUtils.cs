@@ -1,13 +1,16 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace CsWin32Playground
 {
-    public class WinMessageLookup
+    public class WinMsgUtils
     {
+        public static Dictionary<uint, string> MessageNameDict() => 
+            AllMessages.GroupBy(keySelector: m => m.MsgCode, elementSelector: m => m.MsgName)
+                .ToDictionary(i => i.Key, i => string.Join("/", i));
+
+        // From https://wiki.winehq.org/List_Of_Windows_Messages
+        // TODO: store in a file?
         public static IEnumerable<(uint MsgCode, string MsgName)> AllMessages =>
             new List<(uint MsgCode, string MsgName)>()
             {
@@ -1012,11 +1015,5 @@ namespace CsWin32Playground
 (0x8000,"WM_APP"),
 (0xcccd,"WM_RASDIALEVENT"),
             };
-
-        public static Dictionary<uint, string> MessageNameDict()
-        {
-            return AllMessages.GroupBy(keySelector: m => m.MsgCode, elementSelector: m => m.MsgName)
-                .ToDictionary(i => i.Key, i => string.Join("/" ,i));
-        }
     }
 }

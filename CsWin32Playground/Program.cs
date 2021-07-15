@@ -3,35 +3,26 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
-using System.Threading.Tasks.Dataflow;
+using System.Threading;
 using Windows.Win32;
 using Windows.Win32.Foundation;
 using Windows.Win32.Graphics.Gdi;
 using Windows.Win32.UI.WindowsAndMessaging;
 
-[assembly:System.Diagnostics.CodeAnalysis.SuppressMessage("Interoperability", "CA1416:Validate platform compatibility", Justification = "<Pending>")]
-
 namespace CsWin32Playground
 {
-    // https://docs.microsoft.com/en-us/windows/win32/learnwin32/creating-a-window
-    // https://docs.microsoft.com/en-us/windows/win32/learnwin32/window-messages
-    // https://www.gitmemory.com/issue/microsoft/CsWin32/244/822066737
     class Program
     {
-        private record WinMessage(uint msg, WPARAM wParam, LPARAM lParam);
+        private record RawWindowMessage(uint msg, WPARAM wParam, LPARAM lParam);
 
-        static private List<WinMessage> messages = new();
+        static private List<RawWindowMessage> messages = new();
 
-        static private Dictionary<uint, string> MessageNameLookup = WinMessageLookup.MessageNameDict();
+        static private Dictionary<uint, string> MessageCodesToNames = WinMsgUtils.MessageNameDict();
 
         static unsafe void Main(string[] args)
         {
-            // Microsoft.Windows.Sdk.PInvoke
-            // Microsoft.Windows.Sdk.Constants
-
             string className = "Sample Window Class";
             IntPtr hInstance = Process.GetCurrentProcess().Handle;
 
@@ -56,7 +47,7 @@ namespace CsWin32Playground
             HWND hwnd = PInvoke.CreateWindowEx(
                 0,
                 className,
-                "Learn to Program Windows",
+                "Spy--",
                 WINDOW_STYLE.WS_OVERLAPPEDWINDOW,
                 Constants.CW_USEDEFAULT, Constants.CW_USEDEFAULT, Constants.CW_USEDEFAULT, Constants.CW_USEDEFAULT,
                 new HWND(),
@@ -82,45 +73,42 @@ namespace CsWin32Playground
 
         private static LRESULT WndProc(HWND hwnd, uint msg, WPARAM wParam, LPARAM lParam)
         {
-            HDC hdc;
-            PAINTSTRUCT ps;
-            RECT rect;
+            messages.Add(new RawWindowMessage(msg, wParam, lParam));
 
-            messages.Add(new WinMessage(msg, wParam, lParam));
+            switch (msg)
+            {
+                case Constants.WM_KEYDOWN:
+                    if ((nuint)wParam == Constants.VK_SPACE)
+                    {
+                        // SLOW! Simulate slow IO
+                        Thread.Sleep(5000);
+                        messages.Clear();
+                        RepaintWholeWindow(hwnd);
+                    }
+                    break;
+                case Constants.WM_PAINT:
+                    Paint(hwnd);
+                    return (LRESULT)0;
+                case Constants.WM_CLOSE: // unless we handle this manually the process will not quit when the window is closed
+                    Environment.Exit(0);
+                    break;
+                default:
+                    break;
+            }
 
+            //repaint everything on an arbitrary interval
             if (msg != Constants.WM_PAINT && messages.Count % 7 == 0)
             {
                 RepaintWholeWindow(hwnd);
             }
 
-            switch (msg)
-            {
-                //case Constants.WM_SIZE:
-                //    {
-                //        int width = GetLowWord(lParam.Value);   // Get the low-order word.
-                //        int height = GetHighWord(lParam.Value); // Get the high-order word.
-
-                //        return (LRESULT) 0;
-                //    }
-                case Constants.WM_MOUSEMOVE:
-
-                    return (LRESULT) 0;
-                case Constants.WM_PAINT:
-                    Paint(hwnd, out hdc, out ps, out rect);
-                    return (LRESULT) 0;
-                default:
-                    break;
-            }
-
-            //RepaintWholeWindow(hwnd);
-
             return PInvoke.DefWindowProc(hwnd, msg, wParam, lParam);
         }
 
-        private static string FormatMessagesExpensive(IEnumerable<WinMessage> messages)
+        private static string FormatMessagesExpensive(IEnumerable<RawWindowMessage> messages)
         {
             StringBuilder ret = new();
-            ret.AppendLine("Most Popular Window Messages:");
+            ret.AppendLine("Most Popular Window Messages (press space to reset):");
             ret.AppendLine();
 
             var grouped = messages.GroupBy((m) => m.msg)
@@ -130,11 +118,7 @@ namespace CsWin32Playground
 
             foreach (var item in grouped)
             {
-
-                string cnt = $"{item.Count}x".PadRight(10, ' ');
-
-                ret.Append(cnt);
-                ret.Append(cnt.Length);
+                ret.Append($"{item.Count}x".PadRight(10));
                 ret.AppendLine($"{item.MsgName} (0x{item.MsgCode})");
             }
 
@@ -142,7 +126,7 @@ namespace CsWin32Playground
 
             static string GetPossibleMethodNames(uint msgCode)
             {
-                return MessageNameLookup.ContainsKey(msgCode) ? MessageNameLookup[msgCode] : $"Unknown (0x{msgCode:x})";
+                return MessageCodesToNames.ContainsKey(msgCode) ? MessageCodesToNames[msgCode] : $"Unknown (0x{msgCode:x})";
             }
         }
 
@@ -151,14 +135,17 @@ namespace CsWin32Playground
             RECT wholeWindow;
             PInvoke.GetClientRect(hwnd, out wholeWindow);
 
-            // erasing the background is slow and can cause flicker. only do it infrequently
-            bool eraseBackground = messages.Count % 2 == 0;
+            // TODO: erasing the background every time is flickery. can we work out when it's necessary?
             PInvoke.InvalidateRect(hwnd, wholeWindow, true);
             PInvoke.UpdateWindow(hwnd);
         }
 
-        private static void Paint(HWND hwnd, out HDC hdc, out PAINTSTRUCT ps, out RECT rect)
+        private static void Paint(HWND hwnd)
         {
+            HDC hdc;
+            PAINTSTRUCT ps;
+            RECT rect;
+
             hdc = PInvoke.BeginPaint(hwnd, out ps);
             PInvoke.GetClientRect(hwnd, out rect);
 
@@ -186,11 +173,6 @@ namespace CsWin32Playground
             PInvoke.EndPaint(hwnd, ps);
         }
 
-        private static void OnSize(HWND hwnd, WPARAM wParam, int width, int height)
-        {
-
-        }
-
         private static int GetLowWord(nint value)
         {
             uint xy = (uint)value;
@@ -213,30 +195,19 @@ namespace CsWin32Playground
             }
 
             public override bool IsInvalid => false;
-
-            protected override bool ReleaseHandle()
-            {
-                return true;   
-            }
+            protected override bool ReleaseHandle() => true;
         }
 
         // TODO: no idea whether this is right
         public class HdcSafeHandle : SafeHandleZeroOrMinusOneIsInvalid
         {
-            public HdcSafeHandle(HDC hdc) :
-                base(ownsHandle: false)
+            public HdcSafeHandle(HDC hdc) : base(ownsHandle: false)
             {
                 SetHandle(hdc);
             }
 
-            //public override bool IsInvalid => false;
-
-            protected override bool ReleaseHandle()
-            {
-                // not clear to me whether this is needed.
-                this.SetHandleAsInvalid();
-                return true;
-            }
+            // don't actually need to release anything, EndPaint is responsible for that
+            protected override bool ReleaseHandle() => true;
         }
     }
 }

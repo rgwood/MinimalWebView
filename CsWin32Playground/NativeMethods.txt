@@ -21,7 +21,6 @@ InvalidateRect
 
 DrawText
 BeginPaint
-BeginPaint_SafeHandle
 EndPaint
 GetClientRect
 GetDC
@@ -29,9 +28,13 @@ CreateCompatibleDC
 GetStockObject
 SelectObject
 HFONT
-
-// Constants
+VK_SPACE
+HTCLIENT
+SetCursor
+LoadCursor
+IDC_ARROW
 CW_USEDEFAULT
+
 
 // Window Messages
 WM_NULL
