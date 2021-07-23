@@ -7,9 +7,11 @@ GetMessage
 DispatchMessage
 TranslateMessage
 DefWindowProc
+PostQuitMessage
 
 SetWindowsHookEx
 GetCurrentThreadId
+GetModuleHandle
 CallNextHookEx
 GetClientRect
 UpdateWindow
@@ -27,6 +29,7 @@ GetDC
 CreateCompatibleDC
 GetStockObject
 SelectObject
+CreateSolidBrush
 HFONT
 VK_SPACE
 HTCLIENT
@@ -34,6 +37,7 @@ SetCursor
 LoadCursor
 IDC_ARROW
 CW_USEDEFAULT
+SYS_COLOR_INDEX
 
 
 // Window Messages
