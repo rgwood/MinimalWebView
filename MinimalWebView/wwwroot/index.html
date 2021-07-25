@@ -11,6 +11,14 @@
 <body class="p-5 bg-gray-900 text-indigo-200">
   <h1 class="mb-5 font-mono text-indigo-400 text-5xl">Hello, 🌍!</h1>
   <p>This is a tiny .NET 6 Windows application hosting web UI in WebView2. No WinForms, no WPF, no WinUI - just a Win32 message pump.</p>
+
+  <button id="btn1">I am a button, click me to test postMessage interop</button>
+
+  <script>
+      btn1.onclick = (event) => {
+          window.chrome.webview.postMessage("hello world!!!!");
+      }
+  </script>
 </body>
 
 </html>
