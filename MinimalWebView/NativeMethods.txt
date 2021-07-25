@@ -4,6 +4,7 @@ CreateWindowEx
 ShowWindow
 
 GetMessage
+SendMessage
 DispatchMessage
 TranslateMessage
 DefWindowProc
