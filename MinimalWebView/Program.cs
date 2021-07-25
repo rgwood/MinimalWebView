@@ -18,7 +18,7 @@ namespace MinimalWebView
         internal const uint WM_SYNCHRONIZATIONCONTEXT_WORK_AVAILABLE = Constants.WM_USER + 1;
 
         private static CoreWebView2Controller _controller;
-        private static SingleThreadSynchronizationContext _syncCtx;
+        private static SingleThreadSynchronizationContext _uiThreadSyncCtx;
 
         [STAThread]
         static int Main(string[] args)
@@ -75,8 +75,8 @@ namespace MinimalWebView
 
             PInvoke.ShowWindow(hwnd, SHOW_WINDOW_CMD.SW_NORMAL);
 
-            _syncCtx = new SingleThreadSynchronizationContext(hwnd);
-            SynchronizationContext.SetSynchronizationContext(_syncCtx);
+            _uiThreadSyncCtx = new SingleThreadSynchronizationContext(hwnd);
+            SynchronizationContext.SetSynchronizationContext(_uiThreadSyncCtx);
 
             CreateCoreWebView2(hwnd);
 
@@ -99,7 +99,7 @@ namespace MinimalWebView
                     OnSize(hwnd, wParam, GetLowWord(lParam.Value), GetHighWord(lParam.Value));
                     break;
                 case WM_SYNCHRONIZATIONCONTEXT_WORK_AVAILABLE:
-                    _syncCtx.RunAvailableWorkOnCurrentThread();
+                    _uiThreadSyncCtx.RunAvailableWorkOnCurrentThread();
                     break;
                 case Constants.WM_CLOSE:
                     PInvoke.PostQuitMessage(0);
@@ -134,15 +134,15 @@ namespace MinimalWebView
 
         private static async void CoreWebView2_WebMessageReceived(object sender, CoreWebView2WebMessageReceivedEventArgs e)
         {
-            var json = e.TryGetWebMessageAsString();
-            if (string.IsNullOrEmpty(json))
+            var webMessage = e.TryGetWebMessageAsString();
+            if (string.IsNullOrEmpty(webMessage))
                 return;
 
             // simulate moving some slow operation to a background thread
-            await Task.Run(() => Thread.Sleep(500));
+            await Task.Run(() => Thread.Sleep(2000));
 
-            // this will blow up if not run on the UI thread, so let's hope we wired up the SynchronizationContext correctly...
-            await _controller.CoreWebView2.ExecuteScriptAsync("alert('Hello from the UI thread!')");
+            // this will blow up if not run on the UI thread, so the SynchronizationContext needs to have been wired up correctly
+            await _controller.CoreWebView2.ExecuteScriptAsync($"alert('Hello from the UI thread! I got a message from the browser: {webMessage}')");
         }
 
         private static int GetLowWord(nint value)
@@ -158,33 +158,33 @@ namespace MinimalWebView
             int y = unchecked((short)(xy >> 16));
             return y;
         }
-    }
 
-    // based on this very good Stephen Toub article: https://devblogs.microsoft.com/pfxteam/await-synchronizationcontext-and-console-apps/
-    internal sealed class SingleThreadSynchronizationContext : SynchronizationContext
-    {
-        private readonly BlockingCollection<KeyValuePair<SendOrPostCallback, object>> m_queue = new BlockingCollection<KeyValuePair<SendOrPostCallback, object>>();
-        private HWND hwnd;
-
-        public SingleThreadSynchronizationContext(HWND hwnd) : base()
+        // based on this very good Stephen Toub article: https://devblogs.microsoft.com/pfxteam/await-synchronizationcontext-and-console-apps/
+        private sealed class SingleThreadSynchronizationContext : SynchronizationContext
         {
-            this.hwnd = hwnd;
+            private readonly BlockingCollection<KeyValuePair<SendOrPostCallback, object>> m_queue = new BlockingCollection<KeyValuePair<SendOrPostCallback, object>>();
+            private HWND hwnd;
+
+            public SingleThreadSynchronizationContext(HWND hwnd) : base()
+            {
+                this.hwnd = hwnd;
+            }
+
+            public override void Post(SendOrPostCallback d, object state)
+            {
+                m_queue.Add(new KeyValuePair<SendOrPostCallback, object>(d, state));
+                PInvoke.SendMessage(hwnd, WM_SYNCHRONIZATIONCONTEXT_WORK_AVAILABLE, 0, 0);
+            }
+
+            public void RunAvailableWorkOnCurrentThread()
+            {
+                KeyValuePair<SendOrPostCallback, object> workItem;
+
+                while (m_queue.TryTake(out workItem))
+                    workItem.Key(workItem.Value);
+            }
+
+            public void Complete() { m_queue.CompleteAdding(); }
         }
-
-        public override void Post(SendOrPostCallback d, object state)
-        {
-            m_queue.Add(new KeyValuePair<SendOrPostCallback, object>(d, state));
-            PInvoke.SendMessage(hwnd, Program.WM_SYNCHRONIZATIONCONTEXT_WORK_AVAILABLE, 0, 0);
-        }
-
-        public void RunAvailableWorkOnCurrentThread()
-        {
-            KeyValuePair<SendOrPostCallback, object> workItem;
-
-            while (m_queue.TryTake(out workItem))
-                workItem.Key(workItem.Value);
-        }
-
-        public void Complete() { m_queue.CompleteAdding(); }
     }
 }
