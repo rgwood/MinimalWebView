@@ -16,7 +16,7 @@ Microsoft provides WinForms and WPF wrappers for WebView2, so I could embed web 
 
 ## Async / Await
 
-MinimalWebView creates a custom [`SynchronizationContext`](https://docs.microsoft.com/en-us/dotnet/api/system.threading.synchronizationcontext?view=net-5.0) to help with `async` functions. You can `await` WebView2 events and be confident that the continuation will run on the UI thread.
+MinimalWebView creates a custom [`SynchronizationContext`](https://docs.microsoft.com/en-us/dotnet/api/system.threading.synchronizationcontext?view=net-5.0) to help with `async` functions. You can `await` WebView2 events and the async continuation will run on the UI thread.
 
 ## Dependencies
 
@@ -25,10 +25,6 @@ MinimalWebView creates a custom [`SynchronizationContext`](https://docs.microsof
 ## Known Issues
 
 The resulting application cannot currently be [trimmed](https://docs.microsoft.com/en-us/dotnet/core/deploying/trimming-options) because of the way Microsoft.Web.WebView2.Core does COM interop. Please upvote [this issue](https://github.com/MicrosoftEdge/WebView2Feedback/issues/1490).
-
-## Alternatives
-
-[EdgeSharp](https://github.com/webview2/EdgeSharp) is similar but much more full-featured.
 
 ## Credits
 
