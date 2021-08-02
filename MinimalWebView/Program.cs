@@ -158,21 +158,7 @@ namespace MinimalWebView
                 try
                 {
                     SetupAndStartFileSystemWatcher();
-
-                    _npxTaskCTS = new CancellationTokenSource();
-
-                    // TODO: cleanup and document. We are calling node.exe directly instead of npx
-                    // because npx introduces a ghost process that hangs around even if the task is cancelled
-                    var NodePath = @"C:\Program Files\nodejs\node.exe";
-                    await Cli.Wrap(NodePath)
-                        //.WithArguments("tailwindcss -i tailwind-input.css -o tailwind.css --watch --jit --purge=\"./*.html\"")
-                        .WithArguments(new string[] { 
-                            @"C:\Users\reill\AppData\Roaming\npm\\node_modules\tailwindcss\lib\cli.js",
-                            "-i", "tailwind-input.css", "-o", "tailwind.css", "--watch" ,"--jit" ,"--purge=./*.html" })
-                        .WithWorkingDirectory(StaticFileDirectoryPath)
-                        .WithStandardOutputPipe(PipeTarget.ToDelegate(l => Debug.WriteLine(l)))
-                        .WithStandardErrorPipe(PipeTarget.ToDelegate(l => Debug.WriteLine(l)))
-                        .ExecuteAsync(_npxTaskCTS.Token);
+                    await SetupAndRunTailwindJIT();
                 }
                 catch (Exception ex)
                 {
@@ -181,6 +167,32 @@ namespace MinimalWebView
                 }
             }
 
+        }
+
+        // TODO: cleanup, document, find a better way to start the Tailwind JIT.
+        // We are calling node.exe directly instead of npx because npx introduces a
+        // ghost process that hangs around even if the task is cancelled :(
+        private static async Task SetupAndRunTailwindJIT()
+        {
+            _npxTaskCTS = new CancellationTokenSource();
+
+            string NodePath = Path.Combine(Environment.GetEnvironmentVariable("ProgramFiles"), @"nodejs\node.exe");
+            string TailwindCliPath = Path.Combine(Environment.GetEnvironmentVariable("AppData"), @"npm\node_modules\tailwindcss\lib\cli.js");
+
+            await Cli.Wrap(NodePath)
+                .WithArguments(new string[] {
+                    TailwindCliPath,
+                    "-i",
+                    "tailwind-input.css",
+                    "-o",
+                    "tailwind.css",
+                    "--watch",
+                    "--jit",
+                    "--purge=./*.html" })
+                .WithWorkingDirectory(StaticFileDirectoryPath)
+                .WithStandardOutputPipe(PipeTarget.ToDelegate(l => Debug.WriteLine(l)))
+                .WithStandardErrorPipe(PipeTarget.ToDelegate(l => Debug.WriteLine(l)))
+                .ExecuteAsync(_npxTaskCTS.Token);
         }
 
         private static void SetupAndStartFileSystemWatcher()
@@ -192,12 +204,12 @@ namespace MinimalWebView
                 .Concat(_wwwRootFileSystemWatcher.Created)
                 .Concat(_wwwRootFileSystemWatcher.Deleted)
                 .Concat(_wwwRootFileSystemWatcher.Renamed)
-                .Buffer(TimeSpan.FromMilliseconds(10))
+                .Buffer(TimeSpan.FromMilliseconds(20))
                 .Where(x => x.Any())
                 .ObserveOn(_uiThreadSyncCtx)
                 .Subscribe(args =>
                 {
-                    Debug.WriteLine($"File change: {string.Join(',', args.Select(a => $"{a.ChangeType} {a.Name}"))}");
+                    Debug.WriteLine($"FileSystemEvent: {string.Join(',', args.Select(a => $"{a.ChangeType} {a.Name}"))}");
                     _controller.CoreWebView2.Reload();
                 }
                 );
@@ -210,7 +222,7 @@ namespace MinimalWebView
                 return;
 
             // simulate moving some slow operation to a background thread
-            //await Task.Run(() => Thread.Sleep(1));
+            await Task.Run(() => Thread.Sleep(200));
 
             // this will blow up if not run on the UI thread, so the SynchronizationContext needs to have been wired up correctly
             await _controller.CoreWebView2.ExecuteScriptAsync($"alert('Hi from the UI thread! I got a message from the browser: {webMessage}')");
