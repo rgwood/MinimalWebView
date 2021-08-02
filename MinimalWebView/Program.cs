@@ -3,22 +3,35 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Drawing;
+using System.IO;
+using System.Reactive;
+using System.Reactive.Linq;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
+using RxFileSystemWatcher;
 using Windows.Win32;
 using Windows.Win32.Foundation;
 using Windows.Win32.Graphics.Gdi;
 using Windows.Win32.UI.WindowsAndMessaging;
+using System.Diagnostics;
+using System.Linq;
+using CliWrap;
+using CliWrap.Buffered;
 
 namespace MinimalWebView
 {
     class Program
     {
         internal const uint WM_SYNCHRONIZATIONCONTEXT_WORK_AVAILABLE = Constants.WM_USER + 1;
-
+        //private const string StaticFileDirectoryPath = "wwwroot";
+        private const string StaticFileDirectoryPath = @"C:\Users\reill\source\MinimalWebView\MinimalWebView\wwwroot";
+        private const string NpxPath = @"C:\Program Files\nodejs\npx.cmd";
         private static CoreWebView2Controller _controller;
         private static SingleThreadSynchronizationContext _uiThreadSyncCtx;
+        private static ObservableFileSystemWatcher _wwwRootFileSystemWatcher;
+        private static CommandTask<CommandResult> _npxTask;
+        private static CancellationTokenSource _npxTaskCTS;
 
         [STAThread]
         static int Main(string[] args)
@@ -60,7 +73,7 @@ namespace MinimalWebView
                         (char*)classId,
                         windowNamePtr,
                         WINDOW_STYLE.WS_OVERLAPPEDWINDOW,
-                        Constants.CW_USEDEFAULT, Constants.CW_USEDEFAULT, Constants.CW_USEDEFAULT, Constants.CW_USEDEFAULT,
+                        Constants.CW_USEDEFAULT, Constants.CW_USEDEFAULT, 600, 500,
                         new HWND(),
                         new HMENU(),
                         hInstance,
@@ -81,7 +94,6 @@ namespace MinimalWebView
             CreateCoreWebView2(hwnd);
 
             MSG msg;
-
             while (PInvoke.GetMessage(out msg, new HWND(), 0, 0))
             {
                 PInvoke.TranslateMessage(msg);
@@ -102,6 +114,7 @@ namespace MinimalWebView
                     _uiThreadSyncCtx.RunAvailableWorkOnCurrentThread();
                     break;
                 case Constants.WM_CLOSE:
+                    _npxTaskCTS.Cancel();
                     PInvoke.PostQuitMessage(0);
                     break;
             }
@@ -126,10 +139,68 @@ namespace MinimalWebView
             PInvoke.GetClientRect(hwnd, out var hwndRect);
 
             _controller.CoreWebView2.WebMessageReceived += CoreWebView2_WebMessageReceived;
-            _controller.CoreWebView2.SetVirtualHostNameToFolderMapping("minimalwebview.example", "wwwroot", CoreWebView2HostResourceAccessKind.Allow);
+            _controller.CoreWebView2.DOMContentLoaded += CoreWebView2_DOMContentLoadedFirstTime;
+
+            _controller.CoreWebView2.SetVirtualHostNameToFolderMapping("minimalwebview.example", StaticFileDirectoryPath, CoreWebView2HostResourceAccessKind.Allow);
             _controller.Bounds = new Rectangle(0, 0, hwndRect.right, hwndRect.bottom);
             _controller.IsVisible = true;
             _controller.CoreWebView2.Navigate("https://minimalwebview.example/index.html");
+        }
+
+        // Set up Hot Reload once at startup
+        private static async void CoreWebView2_DOMContentLoadedFirstTime(object sender, CoreWebView2DOMContentLoadedEventArgs e)
+        {
+            _controller.CoreWebView2.DOMContentLoaded -= CoreWebView2_DOMContentLoadedFirstTime;
+
+            if (Debugger.IsAttached)
+            {
+
+                try
+                {
+                    SetupAndStartFileSystemWatcher();
+
+                    _npxTaskCTS = new CancellationTokenSource();
+
+                    // TODO: cleanup and document. We are calling node.exe directly instead of npx
+                    // because npx introduces a ghost process that hangs around even if the task is cancelled
+                    var NodePath = @"C:\Program Files\nodejs\node.exe";
+                    await Cli.Wrap(NodePath)
+                        //.WithArguments("tailwindcss -i tailwind-input.css -o tailwind.css --watch --jit --purge=\"./*.html\"")
+                        .WithArguments(new string[] { 
+                            @"C:\Users\reill\AppData\Roaming\npm\\node_modules\tailwindcss\lib\cli.js",
+                            "-i", "tailwind-input.css", "-o", "tailwind.css", "--watch" ,"--jit" ,"--purge=./*.html" })
+                        .WithWorkingDirectory(StaticFileDirectoryPath)
+                        .WithStandardOutputPipe(PipeTarget.ToDelegate(l => Debug.WriteLine(l)))
+                        .WithStandardErrorPipe(PipeTarget.ToDelegate(l => Debug.WriteLine(l)))
+                        .ExecuteAsync(_npxTaskCTS.Token);
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine("Error in Hot Reload:");
+                    Debug.WriteLine(ex.Demystify().ToString());
+                }
+            }
+
+        }
+
+        private static void SetupAndStartFileSystemWatcher()
+        {
+            _wwwRootFileSystemWatcher = new ObservableFileSystemWatcher(new FileSystemWatcher(StaticFileDirectoryPath));
+            _wwwRootFileSystemWatcher.Start();
+
+            _wwwRootFileSystemWatcher.Changed
+                .Concat(_wwwRootFileSystemWatcher.Created)
+                .Concat(_wwwRootFileSystemWatcher.Deleted)
+                .Concat(_wwwRootFileSystemWatcher.Renamed)
+                .Buffer(TimeSpan.FromMilliseconds(10))
+                .Where(x => x.Any())
+                .ObserveOn(_uiThreadSyncCtx)
+                .Subscribe(args =>
+                {
+                    Debug.WriteLine($"File change: {string.Join(',', args.Select(a => $"{a.ChangeType} {a.Name}"))}");
+                    _controller.CoreWebView2.Reload();
+                }
+                );
         }
 
         private static async void CoreWebView2_WebMessageReceived(object sender, CoreWebView2WebMessageReceivedEventArgs e)
@@ -139,10 +210,10 @@ namespace MinimalWebView
                 return;
 
             // simulate moving some slow operation to a background thread
-            await Task.Run(() => Thread.Sleep(2000));
+            //await Task.Run(() => Thread.Sleep(1));
 
             // this will blow up if not run on the UI thread, so the SynchronizationContext needs to have been wired up correctly
-            await _controller.CoreWebView2.ExecuteScriptAsync($"alert('Hello from the UI thread! I got a message from the browser: {webMessage}')");
+            await _controller.CoreWebView2.ExecuteScriptAsync($"alert('Hi from the UI thread! I got a message from the browser: {webMessage}')");
         }
 
         private static int GetLowWord(nint value)
