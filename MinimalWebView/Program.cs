@@ -13,11 +13,13 @@ using RxFileSystemWatcher;
 using Windows.Win32;
 using Windows.Win32.Foundation;
 using Windows.Win32.Graphics.Gdi;
+using Windows.Win32.UI.ColorSystem;
 using Windows.Win32.UI.WindowsAndMessaging;
 using System.Diagnostics;
 using System.Linq;
 using CliWrap;
 using CliWrap.Buffered;
+
 
 namespace MinimalWebView
 {
@@ -84,6 +86,21 @@ namespace MinimalWebView
             if (hwnd.Value == 0)
             {
                 throw new Exception("hwnd not created");
+            }
+
+            unsafe
+            {
+                //COLOR titleBackgroundColor;//= new GRAYCOLOR();
+                //titleBackgroundColor.rgb.red = 100;
+
+                WInterop.GdiPlus.ARGB bgColor = new WInterop.GdiPlus.ARGB(150, 20, 30);
+
+                //` `aColor.rgb.green = 50;` `aColor.rgb.blue = 2;`
+                const uint DWMWA_CAPTION_COLOR = 35;
+                const uint DWMWA_TEXT_COLOR = 36;
+
+                WInterop.GdiPlus.ARGB v = System.Runtime.CompilerServices.Unsafe.AsRef(bgColor);
+                HRESULT setBgResult = PInvoke.DwmSetWindowAttribute(hwnd, DWMWA_CAPTION_COLOR, &bgColor, 4);
             }
 
             PInvoke.ShowWindow(hwnd, SHOW_WINDOW_CMD.SW_NORMAL);
