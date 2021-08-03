@@ -1,10 +1,7 @@
 ﻿using Microsoft.Web.WebView2.Core;
 using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
-using System.Reactive;
 using System.Reactive.Linq;
 using System.Reflection;
 using System.Threading;
@@ -13,24 +10,22 @@ using RxFileSystemWatcher;
 using Windows.Win32;
 using Windows.Win32.Foundation;
 using Windows.Win32.Graphics.Gdi;
-using Windows.Win32.UI.ColorSystem;
 using Windows.Win32.UI.WindowsAndMessaging;
 using System.Diagnostics;
 using System.Linq;
 using CliWrap;
-using CliWrap.Buffered;
-
 
 namespace MinimalWebView
 {
     class Program
     {
         internal const uint WM_SYNCHRONIZATIONCONTEXT_WORK_AVAILABLE = Constants.WM_USER + 1;
-        //private const string StaticFileDirectoryPath = "wwwroot";
-        private const string StaticFileDirectoryPath = @"C:\Users\reill\source\MinimalWebView\MinimalWebView\wwwroot";
-        private const string NpxPath = @"C:\Program Files\nodejs\npx.cmd";
+        private const string StaticFileDirectory = "wwwroot";
         private static CoreWebView2Controller _controller;
         private static SingleThreadSynchronizationContext _uiThreadSyncCtx;
+        
+        // hot reload stuff
+        private const string NpxPath = @"C:\Program Files\nodejs\npx.cmd";
         private static ObservableFileSystemWatcher _wwwRootFileSystemWatcher;
         private static CommandTask<CommandResult> _npxTask;
         private static CancellationTokenSource _npxTaskCTS;
@@ -63,9 +58,7 @@ namespace MinimalWebView
                     classId = PInvoke.RegisterClass(wc);
 
                     if (classId == 0)
-                    {
                         throw new Exception("class not registered");
-                    }
                 }
 
                 fixed (char* windowNamePtr = $"MinimalWebView {Assembly.GetExecutingAssembly().GetName().Version}")
@@ -84,24 +77,7 @@ namespace MinimalWebView
             }
 
             if (hwnd.Value == 0)
-            {
                 throw new Exception("hwnd not created");
-            }
-
-            unsafe
-            {
-                //COLOR titleBackgroundColor;//= new GRAYCOLOR();
-                //titleBackgroundColor.rgb.red = 100;
-
-                WInterop.GdiPlus.ARGB bgColor = new WInterop.GdiPlus.ARGB(150, 20, 30);
-
-                //` `aColor.rgb.green = 50;` `aColor.rgb.blue = 2;`
-                const uint DWMWA_CAPTION_COLOR = 35;
-                const uint DWMWA_TEXT_COLOR = 36;
-
-                WInterop.GdiPlus.ARGB v = System.Runtime.CompilerServices.Unsafe.AsRef(bgColor);
-                HRESULT setBgResult = PInvoke.DwmSetWindowAttribute(hwnd, DWMWA_CAPTION_COLOR, &bgColor, 4);
-            }
 
             PInvoke.ShowWindow(hwnd, SHOW_WINDOW_CMD.SW_NORMAL);
 
@@ -131,7 +107,7 @@ namespace MinimalWebView
                     _uiThreadSyncCtx.RunAvailableWorkOnCurrentThread();
                     break;
                 case Constants.WM_CLOSE:
-                    _npxTaskCTS.Cancel();
+                    _npxTaskCTS?.Cancel();
                     PInvoke.PostQuitMessage(0);
                     break;
             }
@@ -142,9 +118,7 @@ namespace MinimalWebView
         private static void OnSize(HWND hwnd, WPARAM wParam, int width, int height)
         {
             if (_controller != null)
-            {
                 _controller.Bounds = new Rectangle(0, 0, width, height);
-            }
         }
 
         private static async void CreateCoreWebView2(HWND hwnd)
@@ -171,7 +145,6 @@ namespace MinimalWebView
 
             if (Debugger.IsAttached)
             {
-
                 try
                 {
                     SetupAndStartFileSystemWatcher();
@@ -183,19 +156,24 @@ namespace MinimalWebView
                     Debug.WriteLine(ex.Demystify().ToString());
                 }
             }
-
         }
 
-        // TODO: cleanup, document, find a better way to start the Tailwind JIT.
-        // We are calling node.exe directly instead of npx because npx introduces a
-        // ghost process that hangs around even if the task is cancelled :(
+        // If a debugger is attached (i.e. we're doing hot reload), get the path relative to the project directory
+        static string StaticFileDirectoryPath
+            => Debugger.IsAttached ? Path.Combine(ProjectDirectoryPath.Value, StaticFileDirectory) : StaticFileDirectory;
+
         private static async Task SetupAndRunTailwindJIT()
         {
+            // TODO: clean up any orphaned Node processes from previous runs
+            // We handle cleanup when the application is closed gracefully, but closing the VS debugger
+            // terminates the application with no opportunity for cleanup
             _npxTaskCTS = new CancellationTokenSource();
 
             string NodePath = Path.Combine(Environment.GetEnvironmentVariable("ProgramFiles"), @"nodejs\node.exe");
             string TailwindCliPath = Path.Combine(Environment.GetEnvironmentVariable("AppData"), @"npm\node_modules\tailwindcss\lib\cli.js");
 
+            // We are calling node.exe directly instead of npx because npx introduces a
+            // ghost process that hangs around even if the task is cancelled :(
             await Cli.Wrap(NodePath)
                 .WithArguments(new string[] {
                     TailwindCliPath,
@@ -228,8 +206,7 @@ namespace MinimalWebView
                 {
                     Debug.WriteLine($"FileSystemEvent: {string.Join(',', args.Select(a => $"{a.ChangeType} {a.Name}"))}");
                     _controller.CoreWebView2.Reload();
-                }
-                );
+                });
         }
 
         private static async void CoreWebView2_WebMessageReceived(object sender, CoreWebView2WebMessageReceivedEventArgs e)
@@ -257,34 +234,6 @@ namespace MinimalWebView
             uint xy = (uint)value;
             int y = unchecked((short)(xy >> 16));
             return y;
-        }
-
-        // based on this very good Stephen Toub article: https://devblogs.microsoft.com/pfxteam/await-synchronizationcontext-and-console-apps/
-        private sealed class SingleThreadSynchronizationContext : SynchronizationContext
-        {
-            private readonly BlockingCollection<KeyValuePair<SendOrPostCallback, object>> m_queue = new BlockingCollection<KeyValuePair<SendOrPostCallback, object>>();
-            private HWND hwnd;
-
-            public SingleThreadSynchronizationContext(HWND hwnd) : base()
-            {
-                this.hwnd = hwnd;
-            }
-
-            public override void Post(SendOrPostCallback d, object state)
-            {
-                m_queue.Add(new KeyValuePair<SendOrPostCallback, object>(d, state));
-                PInvoke.SendMessage(hwnd, WM_SYNCHRONIZATIONCONTEXT_WORK_AVAILABLE, 0, 0);
-            }
-
-            public void RunAvailableWorkOnCurrentThread()
-            {
-                KeyValuePair<SendOrPostCallback, object> workItem;
-
-                while (m_queue.TryTake(out workItem))
-                    workItem.Key(workItem.Value);
-            }
-
-            public void Complete() { m_queue.CompleteAdding(); }
         }
     }
 }
