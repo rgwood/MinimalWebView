@@ -26,8 +26,7 @@ namespace MinimalWebView
         
         // hot reload stuff
         private const string NpxPath = @"C:\Program Files\nodejs\npx.cmd";
-        private static ObservableFileSystemWatcher _wwwRootFileSystemWatcher;
-        private static CommandTask<CommandResult> _npxTask;
+        private static ObservableFileSystemWatcher _staticFileWatcher;
         private static CancellationTokenSource _npxTaskCTS;
 
         [STAThread]
@@ -192,13 +191,13 @@ namespace MinimalWebView
 
         private static void SetupAndStartFileSystemWatcher()
         {
-            _wwwRootFileSystemWatcher = new ObservableFileSystemWatcher(new FileSystemWatcher(StaticFileDirectoryPath));
-            _wwwRootFileSystemWatcher.Start();
+            _staticFileWatcher = new ObservableFileSystemWatcher(new FileSystemWatcher(StaticFileDirectoryPath));
+            _staticFileWatcher.Start();
 
-            _wwwRootFileSystemWatcher.Changed
-                .Concat(_wwwRootFileSystemWatcher.Created)
-                .Concat(_wwwRootFileSystemWatcher.Deleted)
-                .Concat(_wwwRootFileSystemWatcher.Renamed)
+            _staticFileWatcher.Changed
+                .Concat(_staticFileWatcher.Created)
+                .Concat(_staticFileWatcher.Deleted)
+                .Concat(_staticFileWatcher.Renamed)
                 .Buffer(TimeSpan.FromMilliseconds(20))
                 .Where(x => x.Any())
                 .ObserveOn(_uiThreadSyncCtx)
