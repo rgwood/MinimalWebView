@@ -645,9 +645,9 @@ body > * {
   color: rgba(199, 210, 254, var(--tw-text-opacity));
 }
 
-.text-yellow-600 {
+.text-indigo-400 {
   --tw-text-opacity: 1;
-  color: rgba(217, 119, 6, var(--tw-text-opacity));
+  color: rgba(129, 140, 248, var(--tw-text-opacity));
 }
 
 .text-white {
@@ -655,9 +655,8 @@ body > * {
   color: rgba(255, 255, 255, var(--tw-text-opacity));
 }
 
-.text-indigo-400 {
-  --tw-text-opacity: 1;
-  color: rgba(129, 140, 248, var(--tw-text-opacity));
+.underline {
+  text-decoration: underline;
 }
 
 .hover\:bg-indigo-800:hover {
