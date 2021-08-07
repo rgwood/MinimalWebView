@@ -24,6 +24,4 @@ The resulting application cannot currently be [trimmed](https://docs.microsoft.c
 
 ## Credits
 
-Includes some PInvoke code from Jeremy Kuhne's excellent [WInterop](https://github.com/JeremyKuhne/WInterop) project.
-
 Initially derived from Vítězslav Imrýšek's handy [CsWin32Playground]( https://github.com/VitezslavImrysek/CsWin32Playground), where he shows how to create a message pump using CsWin32.
