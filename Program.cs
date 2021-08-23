@@ -107,10 +107,11 @@ class Program
     private static async void CreateCoreWebView2(HWND hwnd)
     {
         var environment = await CoreWebView2Environment.CreateAsync(null, null, null);
-
-        _controller = await environment.CreateCoreWebView2ControllerAsync(hwnd);
         PInvoke.GetClientRect(hwnd, out var hwndRect);
 
+        _controller = await environment.CreateCoreWebView2ControllerAsync(hwnd);
+
+        _controller.DefaultBackgroundColor = Color.Transparent; // avoids flash of white when page first renders
         _controller.CoreWebView2.WebMessageReceived += CoreWebView2_WebMessageReceived;
         _controller.CoreWebView2.SetVirtualHostNameToFolderMapping("minimalwebview.example", StaticFileDirectory, CoreWebView2HostResourceAccessKind.Allow);
         _controller.Bounds = new Rectangle(0, 0, hwndRect.right, hwndRect.bottom);
