@@ -6,6 +6,8 @@ A tiny .NET 6 Windows application that hosts web UI in [WebView2](https://develo
 
 ![screenshot](https://res.cloudinary.com/reilly-wood/image/upload/v1627014945/github-readmes/MinimalWebView.png)
 
+This is very bare-bones and is mostly useful as an educational example. If you're looking for more functionality, my poorly-named [MaximalWebView](https://github.com/rgwood/MaximalWebView) builds on top of this.
+
 ## Motivation
 
 This is an experiment to see how far I can push a slim Windows application that uses C# for the hosting logic and web UI for the "front-end".

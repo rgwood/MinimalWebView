@@ -1,0 +1,23 @@
+﻿// This file configures CsWin32 and tells it which bindings to generate
+// https://github.com/microsoft/CsWin32
+
+RegisterClass
+CreateWindowEx
+ShowWindow
+
+GetMessage
+SendMessage
+DispatchMessage
+TranslateMessage
+DefWindowProc
+PostQuitMessage
+
+GetModuleHandle
+GetClientRect
+CreateSolidBrush
+CW_USEDEFAULT
+SYS_COLOR_INDEX
+
+WM_SIZE
+WM_CLOSE
+WM_USER
