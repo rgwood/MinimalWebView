@@ -6,6 +6,7 @@
     <TargetFramework>net6.0-windows</TargetFramework>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <Version>0.4.0</Version>
+    <ImplicitUsings>true</ImplicitUsings>
   </PropertyGroup>
 
   <ItemGroup>
