@@ -4,7 +4,7 @@
 * text=auto
 
 # exclude demo html+CSS from GitHub stats
-MinimalWebView/wwwroot/* linguist-vendored
+wwwroot/* linguist-vendored
 
 ###############################################################################
 # Set default behavior for command prompt diff.
