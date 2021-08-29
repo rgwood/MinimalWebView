@@ -7,6 +7,7 @@ ShowWindow
 
 GetMessage
 SendMessage
+PostMessage
 DispatchMessage
 TranslateMessage
 DefWindowProc
