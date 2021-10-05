@@ -13,9 +13,9 @@ env:
   DOTNET_VERSION: '6.0.x' # The .NET SDK version to use
 
 jobs:
-  build-and-test:
+  build:
 
-    name: build-and-test-${{matrix.os}}
+    name: build-${{matrix.os}}
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
