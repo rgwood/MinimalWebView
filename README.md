@@ -1,5 +1,4 @@
-# MinimalWebView
-
+# MinimalWebView [![build](https://github.com/rgwood/MinimalWebView/actions/workflows/build.yml/badge.svg)](https://github.com/rgwood/MinimalWebView/actions/workflows/build.yml)
 ## tl;dr
 
 A tiny .NET 6 Windows application that hosts web UI in [WebView2](https://developer.microsoft.com/en-us/microsoft-edge/webview2/). No UI framework, just a plain old Win32 message loop.
