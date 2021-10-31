@@ -17,6 +17,9 @@ class Program
     [STAThread]
     static int Main(string[] args)
     {
+#if DEBUG // By default GUI apps have no console. Open one to enable Console.WriteLine debugging 🤠
+        PInvoke.AllocConsole();
+#endif
         HWND hwnd;
 
         unsafe
@@ -70,6 +73,7 @@ class Program
 
         CreateCoreWebView2(hwnd);
 
+        Console.WriteLine("Starting message pump...");
         MSG msg;
         while (PInvoke.GetMessage(out msg, new HWND(), 0, 0))
         {
@@ -106,14 +110,15 @@ class Program
 
     private static async void CreateCoreWebView2(HWND hwnd)
     {
+        Console.WriteLine("Initializing WebView2...");
         var environment = await CoreWebView2Environment.CreateAsync(null, null, null);
-        PInvoke.GetClientRect(hwnd, out var hwndRect);
-
         _controller = await environment.CreateCoreWebView2ControllerAsync(hwnd);
+        Console.WriteLine("WebView2 initialization finished.");
 
         _controller.DefaultBackgroundColor = Color.Transparent; // avoids flash of white when page first renders
         _controller.CoreWebView2.WebMessageReceived += CoreWebView2_WebMessageReceived;
         _controller.CoreWebView2.SetVirtualHostNameToFolderMapping("minimalwebview.example", StaticFileDirectory, CoreWebView2HostResourceAccessKind.Allow);
+        PInvoke.GetClientRect(hwnd, out var hwndRect);
         _controller.Bounds = new Rectangle(0, 0, hwndRect.right, hwndRect.bottom);
         _controller.IsVisible = true;
         _controller.CoreWebView2.Navigate("https://minimalwebview.example/index.html");
