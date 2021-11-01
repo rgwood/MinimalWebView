@@ -3,15 +3,15 @@
 
 A tiny .NET 6 Windows application that hosts web UI in [WebView2](https://developer.microsoft.com/en-us/microsoft-edge/webview2/). No UI framework, just a plain old Win32 message loop.
 
-![screenshot](https://res.cloudinary.com/reilly-wood/image/upload/v1627014945/github-readmes/MinimalWebView.png)
+![image](https://user-images.githubusercontent.com/26268125/139745909-90a75ad0-a9da-4cff-82e1-81538eee45d5.png)
 
-This is very bare-bones and is mostly useful as an educational example. If you're looking for more functionality, my poorly-named [MaximalWebView](https://github.com/rgwood/MaximalWebView) builds on top of this.
+This is very bare-bones and is mostly useful as an educational example. If you're looking for more functionality, my [MaximalWebView](https://github.com/rgwood/MaximalWebView) builds on top of this.
 
 ## Motivation
 
 This is an experiment to see how far I can push a slim Windows application that uses C# for the hosting logic and web UI for the "front-end".
 
-The native UI situation on Windows is a little bleak and WebView2 will be shipping with Windows 11, so it's a good time to lean into web UI a little more. But... the .NET team has been killing it in recent years, I'd like to write my code that lives outside Chromium in C# or F#.
+The native UI situation on Windows is a little bleak and WebView2 ships with Windows 11, so it's a good time to lean into web UI a little more. But... the .NET team has been killing it recently, I'd like to write my code that lives outside Chromium in C# or F#.
 
 Microsoft provides WinForms and WPF wrappers for WebView2, so I could embed web UI in a plain old .NET GUI app. But WinForms and WPF are *big* dependencies and they're mostly unnecessary for web UI. Why not see how far we can get with an old-school Win32 message pump?
 
