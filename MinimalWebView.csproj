@@ -2,9 +2,8 @@
 
   <PropertyGroup>
     <!-- Exe: console and GUI window. WinExe: GUI window only  -->
-    <OutputType>WinExe</OutputType>
+    <OutputType>Exe</OutputType>
     <TargetFramework>net6.0-windows</TargetFramework>
-    <ApplicationManifest>app.manifest</ApplicationManifest>
     <Version>0.4.2</Version>
     <ImplicitUsings>true</ImplicitUsings>
   </PropertyGroup>
@@ -18,14 +17,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Properties\PublishProfiles\" />
-  </ItemGroup>
-
-  <ItemGroup>
     <None Update="wwwroot\index.html">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="wwwroot\tailwind.css">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>

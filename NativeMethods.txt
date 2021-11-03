@@ -17,10 +17,8 @@ GetModuleHandle
 GetClientRect
 CreateSolidBrush
 CW_USEDEFAULT
-SYS_COLOR_INDEX
 
-WM_SIZE
+GetStockObject
+
 WM_CLOSE
 WM_USER
-
-AllocConsole
