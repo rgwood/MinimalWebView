@@ -1,5 +1,4 @@
-﻿namespace MinimalWebView;
-using Microsoft.Web.WebView2.Core;
+﻿using Microsoft.Web.WebView2.Core;
 using System.Diagnostics;
 using System.Drawing;
 using Windows.Win32;
@@ -7,10 +6,12 @@ using Windows.Win32.Foundation;
 using Windows.Win32.Graphics.Gdi;
 using Windows.Win32.UI.WindowsAndMessaging;
 
+namespace MinimalWebView;
+
 class Program
 {
     internal const uint WM_SYNCHRONIZATIONCONTEXT_WORK_AVAILABLE = Constants.WM_USER + 1;
-    private const string StaticFileDirectory = "wwwroot";
+    
     private static CoreWebView2Controller _controller;
     private static UiThreadSynchronizationContext _uiThreadSyncCtx;
     private static Stopwatch _timeSinceLaunch = Stopwatch.StartNew();
@@ -46,7 +47,7 @@ class Program
                     (char*)classId,
                     windowNamePtr,
                     WINDOW_STYLE.WS_OVERLAPPEDWINDOW,
-                    Constants.CW_USEDEFAULT, Constants.CW_USEDEFAULT, 600, 500,
+                    Constants.CW_USEDEFAULT, Constants.CW_USEDEFAULT, 300, 200,
                     new HWND(),
                     new HMENU(),
                     hInstance,
@@ -91,19 +92,16 @@ class Program
         Log("Initializing WebView2...");
         var environment = await CoreWebView2Environment.CreateAsync(null, null, null);
         _controller = await environment.CreateCoreWebView2ControllerAsync(hwnd);
-        Log("WebView2 initialized.");
+        Log("CreateCoreWebView2ControllerAsync() returned");
 
-        _controller.CoreWebView2.DOMContentLoaded += (_, _) => Log("Done! DOM content loaded");
+        _controller.CoreWebView2.DOMContentLoaded += (_, _) => Log("DOMContentLoaded event fired");
 
-        _controller.CoreWebView2.SetVirtualHostNameToFolderMapping("minimalwebview.example", StaticFileDirectory, CoreWebView2HostResourceAccessKind.Allow);
         PInvoke.GetClientRect(hwnd, out var hwndRect);
 
         _controller.Bounds = new Rectangle(0, 0, hwndRect.right, hwndRect.bottom);
         _controller.IsVisible = true;
 
-        Log("Navigating...");
-
-        _controller.CoreWebView2.Navigate("https://minimalwebview.example/index.html");
+        _controller.CoreWebView2.NavigateToString("<!DOCTYPE html><html><body><h1>Test</h1></body></html>");
     }
 
     private static void Log(string s) 
