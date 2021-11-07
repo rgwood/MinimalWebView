@@ -8,7 +8,7 @@ namespace MinimalWebView;
 internal sealed class UiThreadSynchronizationContext : SynchronizationContext
 {
     private readonly BlockingCollection<KeyValuePair<SendOrPostCallback, object>> m_queue = new BlockingCollection<KeyValuePair<SendOrPostCallback, object>>();
-    private HWND hwnd;
+    private readonly HWND hwnd;
 
     public UiThreadSynchronizationContext(HWND hwnd) : base()
     {
