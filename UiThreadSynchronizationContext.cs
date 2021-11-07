@@ -1,7 +1,8 @@
-﻿namespace MinimalWebView;
-using System.Collections.Concurrent;
+﻿using System.Collections.Concurrent;
 using Windows.Win32;
 using Windows.Win32.Foundation;
+
+namespace MinimalWebView;
 
 // based on this very good Stephen Toub article: https://devblogs.microsoft.com/pfxteam/await-synchronizationcontext-and-console-apps/
 internal sealed class UiThreadSynchronizationContext : SynchronizationContext

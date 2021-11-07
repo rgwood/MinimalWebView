@@ -1,11 +1,12 @@
-﻿namespace MinimalWebView;
-using Microsoft.Web.WebView2.Core;
+﻿using Microsoft.Web.WebView2.Core;
 using System.Drawing;
 using System.Reflection;
 using Windows.Win32;
 using Windows.Win32.Foundation;
 using Windows.Win32.Graphics.Gdi;
 using Windows.Win32.UI.WindowsAndMessaging;
+
+namespace MinimalWebView;
 
 class Program
 {
