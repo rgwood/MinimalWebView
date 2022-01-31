@@ -1,6 +1,6 @@
-﻿using Microsoft.Web.WebView2.Core;
-using System.Drawing;
+﻿using System.Drawing;
 using System.Reflection;
+using Microsoft.Web.WebView2.Core;
 using Windows.Win32;
 using Windows.Win32.Foundation;
 using Windows.Win32.Graphics.Gdi;
@@ -112,8 +112,23 @@ class Program
     private static async void CreateCoreWebView2(HWND hwnd)
     {
         Console.WriteLine("Initializing WebView2...");
-        var environment = await CoreWebView2Environment.CreateAsync(null, null, null);
-        _controller = await environment.CreateCoreWebView2ControllerAsync(hwnd);
+
+        try
+        {
+            var environment = await CoreWebView2Environment.CreateAsync(null, null, null);
+            _controller = await environment.CreateCoreWebView2ControllerAsync(hwnd);
+        }
+        catch (WebView2RuntimeNotFoundException)
+        {
+            var result = PInvoke.MessageBox(hwnd, "WebView2 runtime not installed.", "Error", MESSAGEBOX_STYLE.MB_OK | MESSAGEBOX_STYLE.MB_ICONERROR);
+
+            if (result == MESSAGEBOX_RESULT.IDYES)
+            {
+                //TODO: download WV2 bootstrapper from https://go.microsoft.com/fwlink/p/?LinkId=2124703 and run it
+            }
+
+            throw;
+        }
         Console.WriteLine("WebView2 initialization finished.");
 
         _controller.DefaultBackgroundColor = Color.Transparent; // avoids flash of white when page first renders

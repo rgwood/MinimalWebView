@@ -24,3 +24,5 @@ WM_CLOSE
 WM_USER
 
 AllocConsole
+
+MessageBox

@@ -5,7 +5,7 @@
     <OutputType>WinExe</OutputType>
     <TargetFramework>net6.0-windows</TargetFramework>
     <ApplicationManifest>app.manifest</ApplicationManifest>
-    <Version>0.4.2</Version>
+    <Version>0.4.3</Version>
     <ImplicitUsings>true</ImplicitUsings>
   </PropertyGroup>
 
