@@ -1,0 +1,31 @@
+# configuration file for dotnet-releaser
+
+# disable default settings
+profile = "custom"
+
+[msbuild]
+project = "MinimalWebView.csproj"
+
+[msbuild.properties]
+PublishTrimmed = false
+PublishSingleFile = true
+SelfContained = true
+PublishReadyToRun = false
+CopyOutputSymbolsToPublishDirectory = false
+SkipCopyingSymbolsToOutputDirectory = true
+DebugType = "embedded"
+IncludeNativeLibrariesForSelfExtract = true
+
+[github]
+user = "rgwood"
+repo = "MinimalWebView"
+
+[changelog]
+publish = false
+
+[nuget]
+publish = false
+
+[[pack]]
+rid = ["win-x64", "win-arm64"]
+kinds = ["zip"]
