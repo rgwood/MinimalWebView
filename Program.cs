@@ -10,7 +10,7 @@ namespace MinimalWebView;
 
 class Program
 {
-    internal const uint WM_SYNCHRONIZATIONCONTEXT_WORK_AVAILABLE = Constants.WM_USER + 1;
+    internal const uint WM_SYNCHRONIZATIONCONTEXT_WORK_AVAILABLE = PInvoke.WM_USER + 1;
     private const string StaticFileDirectory = "wwwroot";
     private static CoreWebView2Controller _controller;
     private static UiThreadSynchronizationContext _uiThreadSyncCtx;
@@ -56,7 +56,7 @@ class Program
                     (char*)classId,
                     windowNamePtr,
                     WINDOW_STYLE.WS_OVERLAPPEDWINDOW,
-                    Constants.CW_USEDEFAULT, Constants.CW_USEDEFAULT, 600, 500,
+                    PInvoke.CW_USEDEFAULT, PInvoke.CW_USEDEFAULT, 600, 500,
                     new HWND(),
                     new HMENU(),
                     hInstance,
@@ -89,13 +89,13 @@ class Program
     {
         switch (msg)
         {
-            case Constants.WM_SIZE:
+            case PInvoke.WM_SIZE:
                 OnSize(hwnd, wParam, GetLowWord(lParam.Value), GetHighWord(lParam.Value));
                 break;
             case WM_SYNCHRONIZATIONCONTEXT_WORK_AVAILABLE:
                 _uiThreadSyncCtx.RunAvailableWorkOnCurrentThread();
                 break;
-            case Constants.WM_CLOSE:
+            case PInvoke.WM_CLOSE:
                 PInvoke.PostQuitMessage(0);
                 break;
         }
