@@ -21,7 +21,17 @@ user = "rgwood"
 repo = "MinimalWebView"
 
 [changelog]
-publish = false
+publish = true
+# disable auto-labeling/categorization of commits
+defaults = false
+
+[[changelog.category]]
+title = ""
+labels = ["any"]
+
+[[changelog.autolabeler]]
+label = "any"
+title = '.*'
 
 [nuget]
 publish = false
