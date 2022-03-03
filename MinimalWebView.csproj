@@ -5,8 +5,10 @@
     <OutputType>WinExe</OutputType>
     <TargetFramework>net6.0-windows</TargetFramework>
     <ApplicationManifest>app.manifest</ApplicationManifest>
-    <Version>0.4.3</Version>
     <ImplicitUsings>true</ImplicitUsings>
+    <Version>0.4.4</Version>
+    <Description>A tiny .NET 6 Windows application that hosts web UI in WebView2</Description>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
   </PropertyGroup>
 
   <ItemGroup>
