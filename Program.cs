@@ -111,12 +111,21 @@ class Program
 
     private static async void CreateCoreWebView2(HWND hwnd)
     {
-        Console.WriteLine("Initializing WebView2...");
-
         try
         {
+            Console.WriteLine("Initializing WebView2...");
             var environment = await CoreWebView2Environment.CreateAsync(null, null, null);
             _controller = await environment.CreateCoreWebView2ControllerAsync(hwnd);
+
+            _controller.DefaultBackgroundColor = Color.Transparent; // avoids flash of white when page first renders
+            _controller.CoreWebView2.WebMessageReceived += CoreWebView2_WebMessageReceived;
+            _controller.CoreWebView2.SetVirtualHostNameToFolderMapping("minimalwebview.example", StaticFileDirectory, CoreWebView2HostResourceAccessKind.Allow);
+            PInvoke.GetClientRect(hwnd, out var hwndRect);
+            _controller.Bounds = new Rectangle(0, 0, hwndRect.right, hwndRect.bottom);
+            _controller.IsVisible = true;
+            _controller.CoreWebView2.Navigate("https://minimalwebview.example/index.html");
+
+            Console.WriteLine("WebView2 initialization succeeded.");
         }
         catch (WebView2RuntimeNotFoundException)
         {
@@ -127,17 +136,13 @@ class Program
                 //TODO: download WV2 bootstrapper from https://go.microsoft.com/fwlink/p/?LinkId=2124703 and run it
             }
 
-            throw;
+            Environment.Exit(1);
         }
-        Console.WriteLine("WebView2 initialization finished.");
-
-        _controller.DefaultBackgroundColor = Color.Transparent; // avoids flash of white when page first renders
-        _controller.CoreWebView2.WebMessageReceived += CoreWebView2_WebMessageReceived;
-        _controller.CoreWebView2.SetVirtualHostNameToFolderMapping("minimalwebview.example", StaticFileDirectory, CoreWebView2HostResourceAccessKind.Allow);
-        PInvoke.GetClientRect(hwnd, out var hwndRect);
-        _controller.Bounds = new Rectangle(0, 0, hwndRect.right, hwndRect.bottom);
-        _controller.IsVisible = true;
-        _controller.CoreWebView2.Navigate("https://minimalwebview.example/index.html");
+        catch (Exception ex)
+        {
+            PInvoke.MessageBox(hwnd, $"Failed to initialize WebView2:{Environment.NewLine}{ex}", "Error", MESSAGEBOX_STYLE.MB_OK | MESSAGEBOX_STYLE.MB_ICONERROR);
+            Environment.Exit(1);
+        }
     }
 
     private static async void CoreWebView2_WebMessageReceived(object sender, CoreWebView2WebMessageReceivedEventArgs e)
