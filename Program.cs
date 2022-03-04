@@ -72,7 +72,8 @@ class Program
         _uiThreadSyncCtx = new UiThreadSynchronizationContext(hwnd);
         SynchronizationContext.SetSynchronizationContext(_uiThreadSyncCtx);
 
-        CreateCoreWebView2(hwnd);
+        // Start initializing WebView2 in a fire-and-forget manner. Errors will be handled in the initialization function
+        _ = CreateCoreWebView2Async(hwnd);
 
         Console.WriteLine("Starting message pump...");
         MSG msg;
@@ -109,7 +110,7 @@ class Program
             _controller.Bounds = new Rectangle(0, 0, width, height);
     }
 
-    private static async void CreateCoreWebView2(HWND hwnd)
+    private static async Task CreateCoreWebView2Async(HWND hwnd)
     {
         try
         {
