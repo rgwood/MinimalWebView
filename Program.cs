@@ -37,12 +37,14 @@ class Program
 
             fixed (char* classNamePtr = "MinimalWebView")
             {
-                WNDCLASSW wc = new WNDCLASSW();
-                wc.lpfnWndProc = WndProc;
-                wc.lpszClassName = classNamePtr;
-                wc.hInstance = hInstance;
-                wc.hbrBackground = backgroundBrush;
-                wc.style = WNDCLASS_STYLES.CS_VREDRAW | WNDCLASS_STYLES.CS_HREDRAW;
+                WNDCLASSW wc = new()
+                {
+                    lpfnWndProc = WndProc,
+                    lpszClassName = classNamePtr,
+                    hInstance = hInstance,
+                    hbrBackground = backgroundBrush,
+                    style = WNDCLASS_STYLES.CS_VREDRAW | WNDCLASS_STYLES.CS_HREDRAW
+                };
                 classId = PInvoke.RegisterClass(wc);
 
                 if (classId == 0)

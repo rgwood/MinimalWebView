@@ -7,7 +7,7 @@ namespace MinimalWebView;
 // based on this very good Stephen Toub article: https://devblogs.microsoft.com/pfxteam/await-synchronizationcontext-and-console-apps/
 internal sealed class UiThreadSynchronizationContext : SynchronizationContext
 {
-    private readonly BlockingCollection<KeyValuePair<SendOrPostCallback, object>> m_queue = new BlockingCollection<KeyValuePair<SendOrPostCallback, object>>();
+    private readonly BlockingCollection<KeyValuePair<SendOrPostCallback, object>> m_queue = new();
     private readonly HWND hwnd;
 
     public UiThreadSynchronizationContext(HWND hwnd) : base()
@@ -29,9 +29,7 @@ internal sealed class UiThreadSynchronizationContext : SynchronizationContext
 
     public void RunAvailableWorkOnCurrentThread()
     {
-        KeyValuePair<SendOrPostCallback, object> workItem;
-
-        while (m_queue.TryTake(out workItem))
+        while (m_queue.TryTake(out KeyValuePair<SendOrPostCallback, object> workItem))
             workItem.Key(workItem.Value);
     }
 
